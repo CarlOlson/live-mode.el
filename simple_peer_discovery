@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+
+require 'socket'
+
+PROTOCOL_VERSION = "SPD01"
+BROADCAST_PORT = 10753
+BROADCAST_INTERVAL = 30
+MAX_READ_SIZE = 256
+
+Peer = Struct.new :packet, :ip
+
+def broadcast service, name, port
+  signature = "%s\t%s\t%s\t%s" % [PROTOCOL_VERSION, service, name, port]
+  
+  socket = UDPSocket.new
+  socket.bind "0.0.0.0", BROADCAST_PORT
+  socket.setsockopt Socket::SOL_SOCKET,
+                    Socket::SO_BROADCAST,
+                    true
+  
+  next_broadcast = 0
+
+  peers = []
+  
+  loop do
+    if Time.now.to_i >= next_broadcast
+      socket.send signature, 0, "255.255.255.255", BROADCAST_PORT
+      next_broadcast = Time.now.to_i + BROADCAST_INTERVAL
+    end
+    
+    begin
+      packet, (_, _, _, ip) = socket.recvfrom_nonblock MAX_READ_SIZE
+      peer = Peer.new packet, ip
+      if (packet =~ /^#{PROTOCOL_VERSION}\t([^\t]+)\t([^\t]+)\t(\d+)$/ and
+          $1 == service and
+          not peers.include? peer)
+        peers << peer
+        puts "#$1\t#$2\t#{ip}:#$3"
+      end
+    rescue IO::WaitReadable
+    end
+    
+    sleep 1
+  end
+  socket.close
+end
+
+service, name, port = ARGV
+if ARGV.length != 3
+  puts "Error: bad argv length, 3 required"
+  exit 1
+elsif port =~ /\d+/
+  broadcast service, name, port
+else
+  puts "Error: bad port"
+  exit 1
+end

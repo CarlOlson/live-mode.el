@@ -13,14 +13,14 @@ class StateServer
   WAIT_TIME = 0.1
   
   def initialize host, port
-    @server  = TCPServer.new host, port
-    @mutex   = Mutex.new
-    @conns   = Hamster::Vector[]
+    @server = TCPServer.new host, port
+    @mutex  = Mutex.new
+    @conns  = Hamster::Vector[]
     
-    @queue = Hamster::Vector[]
-    @dirty = false
-
-    @iteration = 0
+    @state = Hamster::Hash[
+      queue: Hamster::Vector[],
+      iteration: 0
+    ]
     
     listen
     process
@@ -28,37 +28,36 @@ class StateServer
 
   def state= value
     @mutex.synchronize do
-      @queue = Hamster::Vector[value]
-      @iteration += 1
-      @dirty = true
+      @state = @state.
+                 put(:queue,
+                     Hamster::Vector[value]).
+                 put(:iteration,
+                     @state.get(:iteration) + 1)
     end
   end
-  
+
+  def update cmd
+    @mutex.synchronize do
+      @state = @state.
+                 put(:queue,
+                     @state.get(:queue).push(cmd))
+    end
+  end
+
   def close
     @listener.kill  if @listener
     @processor.kill if @processor
     @server.close   if @server
   end
-
-  def update cmd
-    @mutex.synchronize do
-      @queue = @queue.push cmd
-    end
-  end
   
   private
   def process
     @processor ||= Thread.new do
-      queue = nil
-      iter  = nil
       loop do
         begin
-          @mutex.synchronize do
-            queue = @queue
-            iter = @iteration
-          end
+          state = @state
           @conns.each do |conn|
-            process_connection conn, queue, iter
+            process_connection conn, state
           end
           sleep WAIT_TIME
         rescue => e
@@ -68,7 +67,10 @@ class StateServer
     end
   end
 
-  def process_connection client, queue, iter
+  def process_connection client, state
+    iter  = state.get(:iteration)
+    queue = state.get(:queue)
+    
     # send current state
     if client.iter < iter
       client.iter = iter

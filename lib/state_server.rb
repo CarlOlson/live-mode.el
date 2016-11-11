@@ -3,7 +3,7 @@ require 'thread'
 require 'socket'
 require 'hamster'
 
-class Connection < Struct.new(:conn, :index, :iter)
+class Client < Struct.new(:conn, :index, :iter)
   def initialize conn
     super conn, -1, 0
   end
@@ -15,7 +15,7 @@ class StateServer
   def initialize host, port
     @server = TCPServer.new host, port
     @mutex  = Mutex.new
-    @conns  = Hamster::Vector[]
+    @clients  = Hamster::Vector[]
     
     @state = Hamster::Hash[
       queue: Hamster::Vector[],
@@ -56,8 +56,8 @@ class StateServer
       loop do
         begin
           state = @state
-          @conns.each do |conn|
-            process_connection conn, state
+          @clients.each do |client|
+            process_client client, state
           end
           sleep WAIT_TIME
         rescue => e
@@ -67,7 +67,10 @@ class StateServer
     end
   end
 
-  def process_connection client, state
+  def process_client client, state
+    # return if closed
+    return if client.conn.closed?
+
     iter  = state.get(:iteration)
     queue = state.get(:queue)
     
@@ -91,8 +94,12 @@ class StateServer
     @listener ||= Thread.new do
       loop do
         begin
-          conn = Connection.new @server.accept_nonblock
-          @conns = @conns.push conn
+          client = Client.new @server.accept_nonblock
+          @clients = @clients.
+                       push(client).
+                       reject { |client|
+            client.conn.closed?
+          }
         rescue IO::WaitReadable
           IO.select([@server])
         rescue => e

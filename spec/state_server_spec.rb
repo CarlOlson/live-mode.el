@@ -29,7 +29,7 @@ describe StateServer do
   it "should send state on connection" do
     @server.state = "test"
     @socket = TCPSocket.new @host, @port
-    expect(select_and_gets(@socket)).to eq "STATE test\n"
+    expect(select_and_gets(@socket)).to eq %Q{(state "test")\n}
     @socket.close
   end
 
@@ -37,9 +37,16 @@ describe StateServer do
     @server.state = "1234567890"
     @socket = TCPSocket.new @host, @port
     select_and_gets(@socket) # STATE 1234567890
-    cmd = [6, 7, 5, "!"].join "\t"
-    @server.update cmd
-    expect(select_and_gets(@socket)).to eq "UPDATE #{cmd}\n"
+    cmd = [6, 5, "!"]
+    @server.update *cmd
+    expect(select_and_gets(@socket)).to match [:update, *cmd].to_lisp
+    @socket.close
+  end
+
+  it "should escape newlines" do
+    @server.state = "line1\nline2"
+    @socket = TCPSocket.new @host, @port
+    expect(select_and_gets(@socket)).to eq %Q{(state "line1\\nline2")\n}
     @socket.close
   end
 end

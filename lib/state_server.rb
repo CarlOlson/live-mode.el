@@ -3,6 +3,8 @@ require 'thread'
 require 'socket'
 require 'hamster'
 
+require_relative 'enumerable'
+
 class Client < Struct.new(:conn, :index, :iter)
   def initialize conn
     super conn, -1, 0
@@ -36,7 +38,8 @@ class StateServer
     end
   end
 
-  def update cmd
+  def update start, length, insert
+    cmd = [start, length, insert]
     @mutex.synchronize do
       @state = @state.
                  put(:queue,
@@ -56,8 +59,10 @@ class StateServer
       loop do
         begin
           state = @state
-          @clients.each do |client|
-            process_client client, state
+          if not state.get(:queue).empty?
+            @clients.each do |client|
+              process_client client, state
+            end
           end
           sleep WAIT_TIME
         rescue => e
@@ -70,6 +75,7 @@ class StateServer
   def process_client client, state
     # return if closed
     return if client.conn.closed?
+    return if IO.select(nil, [client.conn], nil, 0).nil?
 
     iter  = state.get(:iteration)
     queue = state.get(:queue)
@@ -77,14 +83,14 @@ class StateServer
     # send current state
     if client.iter < iter
       client.iter = iter
-      client.conn.puts "STATE #{queue.first}"
+      client.conn.puts [:state, queue.first].to_lisp
       client.index = 1
     end
 
     # send updates
     if client.index < queue.size
       queue[1..-1].each do |s|
-        client.conn.puts "UPDATE #{s}"
+        client.conn.puts [:update, *s].to_lisp
       end
       client.index = queue.size
     end

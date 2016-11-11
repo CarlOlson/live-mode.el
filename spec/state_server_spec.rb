@@ -39,7 +39,7 @@ describe StateServer do
     select_and_gets(@socket) # STATE 1234567890
     cmd = [6, 5, "!"]
     @server.update *cmd
-    expect(select_and_gets(@socket)).to match [:update, *cmd].to_lisp
+    expect(select_and_gets(@socket)).to start_with [:update, *cmd].to_lisp
     @socket.close
   end
 
@@ -47,6 +47,16 @@ describe StateServer do
     @server.state = "line1\nline2"
     @socket = TCPSocket.new @host, @port
     expect(select_and_gets(@socket)).to eq %Q{(state "line1\\nline2")\n}
+    @socket.close
+  end
+
+  it "should apply updates to state" do
+    @server.state = "1234567890"
+    @server.update 6, 5, "!"
+    @server.force
+
+    @socket = TCPSocket.new @host, @port
+    expect(select_and_gets(@socket)).to start_with %Q{(state "12345!")}
     @socket.close
   end
 end

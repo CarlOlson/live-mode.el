@@ -4,6 +4,7 @@ require 'socket'
 require 'hamster'
 
 require_relative 'enumerable'
+require_relative 'buffer'
 
 class Client < Struct.new(:conn, :index, :iter)
   def initialize conn
@@ -20,7 +21,8 @@ class StateServer
     @clients  = Hamster::Vector[]
     
     @state = Hamster::Hash[
-      queue: Hamster::Vector[],
+      queue:  Hamster::Vector[],
+      buffer: Buffer.new,
       iteration: 0
     ]
     
@@ -28,13 +30,15 @@ class StateServer
     process
   end
 
-  def state= value
+  def state= text
     @mutex.synchronize do
       @state = @state.
                  put(:queue,
-                     Hamster::Vector[value]).
+                     Hamster::Vector[text]).
                  put(:iteration,
-                     @state.get(:iteration) + 1)
+                     @state.get(:iteration) + 1).
+                 put(:buffer,
+                     Buffer.new(text))
     end
   end
 
@@ -43,10 +47,20 @@ class StateServer
     @mutex.synchronize do
       @state = @state.
                  put(:queue,
-                     @state.get(:queue).push(cmd))
+                     @state.get(:queue).push(cmd)).
+                 put(:buffer,
+                     @state.get(:buffer).update(*cmd))
     end
   end
 
+  def force
+    return if @state.get(:queue).size <= 1
+    @mutex.synchronize do
+      @state = @state.put(:queue,
+                          Hamster::Vector[@state.get(:buffer).text])
+    end
+  end
+  
   def close
     @listener.kill  if @listener
     @processor.kill if @processor

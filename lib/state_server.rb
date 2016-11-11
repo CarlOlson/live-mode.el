@@ -6,9 +6,9 @@ require 'hamster'
 require_relative 'enumerable'
 require_relative 'buffer'
 
-class Client < Struct.new(:conn, :index, :iter)
+class Client < Struct.new(:conn, :updates)
   def initialize conn
-    super conn, -1, 0
+    super conn, 0
   end
 end
 
@@ -23,7 +23,7 @@ class StateServer
     @state = Hamster::Hash[
       queue:  Hamster::Vector[],
       buffer: Buffer.new,
-      iteration: 0
+      updates: 0
     ]
     
     listen
@@ -35,8 +35,11 @@ class StateServer
       @state = @state.
                  put(:queue,
                      Hamster::Vector[text]).
-                 put(:iteration,
-                     @state.get(:iteration) + 1).
+                 put(:updates,
+                     @state.get(:updates) +
+                     @state.get(:queue).size +
+                     # increment each update, including new state
+                     1).
                  put(:buffer,
                      Buffer.new(text))
     end
@@ -56,8 +59,13 @@ class StateServer
   def force
     return if @state.get(:queue).size <= 1
     @mutex.synchronize do
-      @state = @state.put(:queue,
-                          Hamster::Vector[@state.get(:buffer).text])
+      @state = @state.
+                 put(:queue,
+                     Hamster::Vector[@state.get(:buffer).text]).
+                 put(:updates,
+                     # don't increment, force isn't a real update
+                     @state.get(:updates) +
+                     @state.get(:queue).size)
     end
   end
   
@@ -91,22 +99,22 @@ class StateServer
     return if client.conn.closed?
     return if IO.select(nil, [client.conn], nil, 0).nil?
 
-    iter  = state.get(:iteration)
+    base_update = state.get(:updates)
     queue = state.get(:queue)
+    updates = base_update + queue.size
     
-    # send current state
-    if client.iter < iter
-      client.iter = iter
+    # send base state
+    if client.updates < base_update
       client.conn.puts [:state, queue.first].to_lisp
-      client.index = 1
+      client.updates = base_update
     end
-
+    
     # send updates
-    if client.index < queue.size
+    if client.updates < updates
       queue[1..-1].each do |s|
         client.conn.puts [:update, *s].to_lisp
       end
-      client.index = queue.size
+      client.updates = updates
     end
   end
   

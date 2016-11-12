@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+    <head>
+	<title>Emacs</title>
+    </head>
+    <body>
+	<pre id="buffer"></pre>
+	<script>
+	 var socket;
+	 var host = "ws:" + window.location.hostname + ":3001";
+
+	 function connect() {
+             try {
+		 socket = new WebSocket(host);
+
+		 socket.onmessage = function(event) {
+		     console.log(event.data);
+		     processEvent(event);
+		 }
+             } catch(exception) {
+		 console.log(exception);
+             }
+	 }
+
+	 function processEvent(event) {
+	     let cmd = JSON.parse(event.data);
+	     switch(cmd.event) {
+		 case 'set':
+		     setBuffer(cmd.text);
+		     break;
+		 case 'update':
+		     updateBuffer(cmd.start,
+				  cmd.length,
+				  cmd.text);
+		     break;
+	     }
+	 }
+
+	 function setBuffer(text) {
+	     let buffer = document.getElementById("buffer");
+	     buffer.innerHTML = text;
+	 }
+
+	 function updateBuffer(start, length, insertText) {
+	     let buffer = document.getElementById("buffer");
+
+	     // buffer index starts at 1
+	     start -= 1;
+
+	     buffer.innerHTML =
+		 buffer.innerHTML.substring(0, start) +
+		 insertText +
+		 buffer.innerHTML.substring(start + length);
+	 }
+
+         connect();
+	</script>
+    </body>
+</html>

@@ -23,3 +23,7 @@ end
 gem 'hamster'
 gem 'eventmachine'
 
+# for experimental server
+gem 'thin'
+gem 'sinatra'
+gem 'em-websocket'

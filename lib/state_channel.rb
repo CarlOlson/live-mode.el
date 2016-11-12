@@ -1,4 +1,5 @@
 
+require 'securerandom'
 require 'eventmachine'
 
 class StateChannel
@@ -46,9 +47,8 @@ class StateChannel
 
   private
   def unique_id
-    id = nil
-    EM.run_block { id = (@uid += 1) }
-    id
+    # good enough
+    SecureRandom.hex
   end
 
   def sync_subscriber id

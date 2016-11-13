@@ -26,7 +26,6 @@ EM.run do
   EM::WebSocket.start(:host => '0.0.0.0', :port => '3001') do |ws|
     ws.onopen do
       sid = Channel.subscribe do |cmd|
-        puts cmd.to_json
         ws.send(cmd.to_json)
       end
 

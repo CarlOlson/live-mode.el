@@ -11,8 +11,9 @@
 	 var UPDATE_INTERVAL = 125;
 
 	 var socket;
-	 var host = "ws:" + window.location.hostname + ":3001";
-	 var bufferText = "";
+	 var host = 'ws:' + window.location.hostname + ':3001';
+	 var bufferText = '';
+	 var bufferMode = '';
 	 var modified = false;
 	 var hljs;
 
@@ -34,6 +35,7 @@
 	     switch(cmd.event) {
 		 case 'set':
 		     setBuffer(cmd.text);
+		     setMode(cmd.mode);
 		     break;
 		 case 'update':
 		     updateBuffer(cmd.start,
@@ -46,6 +48,10 @@
 
 	 function setBuffer(text) {
 	     bufferText = text;
+	 }
+
+	 function setMode(mode) {
+	     bufferMode = mode || '';
 	 }
 
 	 function updateBuffer(start, length, insertText) {
@@ -63,6 +69,7 @@
 		 modified = false;
 		 let buffer = document.getElementById("buffer");
 		 buffer.innerHTML = escapeHTML(bufferText);
+		 buffer.setAttribute('class', bufferMode);
 		 if (hljs != null)
 		     hljs.highlightBlock(buffer);
 	     }

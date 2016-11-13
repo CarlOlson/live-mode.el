@@ -8,6 +8,28 @@
 
 (defvar live/indent-commands '(newline indent-for-tab-command))
 
+(defvar live/mode-alist '(("\\.rb$"  . "ruby")
+			  ("\\.erb$" . "html")))
+
+(defvar live/previous-undo-list nil)
+
+(defun live/get-highlight-mode ()
+  (let* ((filename (buffer-file-name))
+	 (pair (cl-find-if (lambda (regex-mode)
+			     (string-match-p (car regex-mode)
+					     filename))
+			   live/mode-alist))
+	 (mode (cdr pair)))
+    (or mode "")))
+
+(defun live/recent-undos ()
+  (unless (eq live/previous-undo-list
+	      buffer-undo-list)
+    (cl-loop
+       for (undo . rest) on buffer-undo-list
+       collect undo
+       until (eq rest live/previous-undo-list))))
+
 (defun live/send-json (json)
   (start-process "*live/post*" nil
 		 "curl"
@@ -17,7 +39,8 @@
 
 (defun live/send-set-event (text)
   (live/send-json `((event . set)
-		    (text  . ,text))))
+		    (text  . ,text)
+		    (mode  . ,(live/get-highlight-mode)))))
 
 (defun live/send-update-event (start length text)
   (live/send-json `((event  . update)
@@ -45,16 +68,6 @@
     (live/send-update-event start
 			    prev-length
 			    (buffer-substring start end))))
-
-(defvar live/previous-undo-list nil)
-
-(defun live/recent-undos ()
-  (unless (eq live/previous-undo-list
-	      buffer-undo-list)
-    (cl-loop
-       for (undo . rest) on buffer-undo-list
-       collect undo
-       until (eq rest live/previous-undo-list))))
 
 (defun live/pre-indent-fn ()
   (when (member this-command live/indent-commands)

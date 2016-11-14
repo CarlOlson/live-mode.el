@@ -2,8 +2,9 @@
 <html>
     <head>
 	<title>Emacs</title>
-	<link rel="stylesheet" href="monokai.css">
-	<script src="highlight.pack.js"></script>
+	<link rel="stylesheet"
+	      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/monokai.min.css">
+	<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
     </head>
     <body class="hljs">
 	<pre><code id="buffer" class=""></code></pre>
@@ -25,7 +26,6 @@
 		 socket = new WebSocket(host);
 
 		 socket.onmessage = function(event) {
-		     console.log(event.data);
 		     processEvent(event);
 		 }
              } catch(exception) {

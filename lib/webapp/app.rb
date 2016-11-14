@@ -1,36 +1,50 @@
-
 require 'thread'
 require 'thin'
 require 'em-websocket'
 require 'sinatra/base'
 require 'json'
+require 'uri'
 
 require_relative '../state_channel'
 
 EM.run do
-  Channel = StateChannel.new({ event: 'set', text: '' })
+
+  def new_channel
+    StateChannel.new({ event: 'set', text: '' })
+  end
+
+  # TODO check if threadsafe in EM
+  Channels = Hash.new
 
   class App < Sinatra::Base
     get '/' do
-      erb :index
+      erb :index, locals: { buffer_list: Channels.keys }
     end
 
-    post '/' do
+    get '/:buffer' do
+      erb :buffer
+    end
+
+    post '/:buffer' do
       request.body.rewind
       event = JSON.parse(request.body.read)
-      Channel.update(event)
+      (Channels[request.path] ||= new_channel).
+        update(event)
       status 200
     end
   end
 
   EM::WebSocket.start(:host => '0.0.0.0', :port => '3001') do |ws|
-    ws.onopen do
-      sid = Channel.subscribe do |cmd|
+    ws.onopen do |handshake|
+      channel =
+        (Channels[handshake.path] ||= new_channel)
+
+      sid = channel.subscribe do |cmd|
         ws.send(cmd.to_json)
       end
 
       ws.onclose do
-        Channel.unsubscribe(sid)
+        channel.unsubscribe(sid)
       end
     end
   end

@@ -2,9 +2,9 @@
 (require 'cl-lib)
 (require 'json)
 
-(defvar live/port "3000")
+(defvar live/port 3000)
 
-(defvar live/url (concat "http://localhost:" live/port))
+(defvar live/url-format "http://localhost:%s/%s")
 
 (defvar live/indent-commands '(newline indent-for-tab-command))
 
@@ -31,11 +31,15 @@
        until (eq rest live/previous-undo-list))))
 
 (defun live/send-json (json)
-  (start-process "*live/post*" nil
+  (start-process "*live/post*" "*live/post*"
 		 "curl"
+		 "-H" "Content-Type: application/json"
+		 ;; "--data-urlencode"
 		 "--data"
 		 (json-encode json)
-		 live/url))
+		 (format live/url-format
+			 live/port
+			 (buffer-name))))
 
 (defun live/send-set-event (text)
   (live/send-json `((event . set)

@@ -5,39 +5,52 @@ require 'sinatra/base'
 require 'json'
 require 'uri'
 
-require_relative '../state_channel'
+require './lib/helpers'
 
 EM.run do
 
-  def new_channel
-    StateChannel.new({ event: 'set', text: '' })
-  end
-
   # TODO check if threadsafe in EM
-  Channels = Hash.new
+  CHANNELS      = Hash.new
+  CHANNEL_MODES = Hash.new
 
   class App < Sinatra::Base
+    helpers Helpers
+
     get '/' do
-      erb :index, locals: { buffer_list: Channels.keys }
+      erb :index, locals: { buffer_list: CHANNELS.keys }
     end
 
     get '/:buffer' do
-      erb :buffer
+      buffer = path_to_buffer(request.path)
+      mode   = CHANNEL_MODES[buffer]
+
+      if Helpers.common_mode? mode
+        erb :buffer, locals: { uncommon_mode: false }
+      else
+        erb :buffer, locals: { uncommon_mode: true,
+                               mode: mode }
+      end
     end
 
     post '/:buffer' do
       request.body.rewind
-      event = JSON.parse(request.body.read)
-      (Channels[request.path] ||= new_channel).
+      event  = JSON.parse(request.body.read)
+      buffer = path_to_buffer(request.path)
+
+      (CHANNELS[buffer] ||= new_channel).
         update(event)
+
+      CHANNEL_MODES[buffer] = event['mode']
+
       status 200
     end
   end
 
   EM::WebSocket.start(:host => '0.0.0.0', :port => '3001') do |ws|
     ws.onopen do |handshake|
+      buffer  = Helpers.path_to_buffer(handshake.path)
       channel =
-        (Channels[handshake.path] ||= new_channel)
+        (CHANNELS[buffer] ||= Helpers.new_channel)
 
       sid = channel.subscribe do |cmd|
         ws.send(cmd.to_json)

@@ -5,6 +5,9 @@
 	<link rel="stylesheet"
 	      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/monokai.min.css">
 	<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+	<% if uncommon_mode && html_safe?(mode) %>
+	    <script src='//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.4.0/languages/<%= mode %>.min.js'></script>
+	<% end %>
     </head>
     <body class="hljs">
 	<pre><code id="buffer" class=""></code></pre>

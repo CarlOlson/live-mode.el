@@ -6,8 +6,8 @@
     <body>
 	<div>
 	    <% for buffer in buffer_list %>
-		<% if buffer =~ /^\/[^&<>"'`=\/]+$/ %>
-		    <a href='<%= buffer %>''><%= buffer[1..-1] %></a><br>
+		<% if html_safe?(buffer) %>
+		    <a href='<%= buffer %>'><%= buffer %></a><br>
 		<% end %>
 	    <% end %>
 	</div>

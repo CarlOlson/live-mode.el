@@ -9,7 +9,8 @@
 (defvar live/indent-commands '(newline indent-for-tab-command))
 
 (defvar live/mode-alist '(("\\.rb$"  . "ruby")
-			  ("\\.erb$" . "html")))
+			  ("\\.erb$" . "html")
+			  ("\\.pl"   . "prolog")))
 
 (defvar live/previous-undo-list nil)
 
@@ -31,10 +32,9 @@
        until (eq rest live/previous-undo-list))))
 
 (defun live/send-json (json)
-  (start-process "*live/post*" "*live/post*"
+  (start-process "*live/post*" nil
 		 "curl"
 		 "-H" "Content-Type: application/json"
-		 ;; "--data-urlencode"
 		 "--data"
 		 (json-encode json)
 		 (format live/url-format

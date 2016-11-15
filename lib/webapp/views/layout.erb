@@ -11,24 +11,35 @@
 	      rel="stylesheet"
 	      integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
 	      crossorigin="anonymous">
-	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
-		integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
-		crossorigin="anonymous"></script>
 
 	<link rel="stylesheet"
 	      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/monokai.min.css">
 	<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
     </head>
-    <body class="hljs">
-	<nav class="navbar navbar-default">
-	    <div class="container-fluid">
-		<div class="navbar-header">
-		    <a class="navbar-brand"
-		       target="_blank"
-		       href="//github.com/CarlOlson/live-mode.el">live-mode.el</a>
+    <body>
+	<nav class="navbar navbar-default" role="navigation">
+	    <div class="navbar-header">
+		<a class="navbar-brand"
+		   target="_blank"
+		   href="//github.com/CarlOlson/live-mode.el">live-mode.el</a>
+	    </div>
+	    <div class="navbar-form pull-right">
+		<div class="input-group">
+		    <span class="input-group-btn">
+			<button id="font-dec" type="button" class="quantity-left-minus btn btn-default btn-number">
+			    <span class="glyphicon glyphicon-minus"></span>
+			</button>
+		    </span>
+		    <input id="font-size" type="text" class="form-control input-number" value="18">
+		    <div class="input-group-btn">
+			<button id="font-inc" type="button" class="quantity-right-plus btn btn-default btn-number">
+			    <span class="glyphicon glyphicon-plus"></span>
+			</button>
+		    </div>
 		</div>
 	    </div>
 	</nav>
+	<script src="navbar.js" async></script>
 	<%= yield %>
     </body>
 </html>

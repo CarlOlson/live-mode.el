@@ -5,16 +5,3 @@
 	<% end %>
     <% end %>
 </div>
-<script>
- var socket;
- var host = 'ws:' + window.location.hostname + ':3001';
-
- try {
-     socket = new WebSocket(host);
-
-     socket.onmessage = function(event) {
-     }
- } catch(exception) {
-     console.log(exception);
- }
-</script>

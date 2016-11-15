@@ -13,6 +13,11 @@ class App < Sinatra::Base
     @channel_modes = {}
   end
 
+  configure do
+    # NOTE: takes requests on reactor thread
+    set :threaded, false
+  end
+
   get '/' do
     # TODO: auto refresh
     erb :index, locals: { buffer_list: @channels.keys }
@@ -34,8 +39,12 @@ class App < Sinatra::Base
   end
 
   post '/:buffer' do
+    unless request.ip =~ /^127.0.0.1$/
+      halt 'External IPs not allowed'
+    end
+
     request.body.rewind
-    event  = JSON.parse(request.body.read)
+    event = JSON.parse(request.body.read)
 
     (@channels[@buffer] ||= new_channel)
       .update(event)

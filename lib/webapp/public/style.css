@@ -4,3 +4,8 @@
     border-color: transparent;
     background-color: transparent;
 }
+
+#buffer {
+    font-family: 'Anonymous Pro Bold', monospace;
+    font-size: 18px;
+}

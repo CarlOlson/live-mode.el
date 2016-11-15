@@ -2,7 +2,7 @@
 require 'rspec/core/rake_task'
 require 'rubocop/rake_task'
 
-task :default => :'sinatra:start'
+task default: :'sinatra:start'
 
 RSpec::Core::RakeTask.new(:test)
 
@@ -19,6 +19,6 @@ namespace :sinatra do
 
   desc 'Starts Sinatra webapp with auto-reload via rerun gem'
   task :rerun do
-    exec('bundler exec rerun rake')
+    exec("bundler exec rerun --pattern '{lib/**/*.rb}' rake")
   end
 end

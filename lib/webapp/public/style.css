@@ -1,0 +1,6 @@
+.borderless {
+    padding: 0;
+    border: none;
+    border-color: transparent;
+    background-color: transparent;
+}

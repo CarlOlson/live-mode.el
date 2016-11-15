@@ -1,107 +1,101 @@
-<!doctype html>
-<html>
-    <head>
-	<title>Emacs</title>
-	<link rel="stylesheet"
-	      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/monokai.min.css">
-	<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
-	<% if uncommon_mode && html_safe?(mode) %>
-	    <script src='//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.4.0/languages/<%= mode %>.min.js'></script>
-	<% end %>
-    </head>
-    <body class="hljs">
-	<pre><code id="buffer" class=""></code></pre>
-	<script>
-	 var UPDATE_INTERVAL = 125;
+<link rel="stylesheet"
+      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/monokai.min.css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+<% if uncommon_mode && html_safe?(mode) %>
+    <script src='//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.4.0/languages/<%= mode %>.min.js'></script>
+<% end %>
 
-	 var socket;
-	 var host = 'ws:' +
-		    window.location.hostname +
-		    ':3001' +
-		    window.location.pathname;
-	 var bufferText = '';
-	 var bufferMode = '';
-	 var modified = false;
-	 var hljs;
+<pre class="borderless"><code id="buffer" class=""></code></pre>
 
-	 function connect() {
-             try {
-		 socket = new WebSocket(host);
+<script>
+ var UPDATE_INTERVAL = 125;
 
-		 socket.onmessage = function(event) {
-		     processEvent(event);
-		 }
-             } catch(exception) {
-		 console.log(exception);
-             }
+ var socket;
+ var host = 'ws:' +
+	    window.location.hostname +
+	    ':3001' +
+	    window.location.pathname;
+ var bufferText = '';
+ var bufferMode = '';
+ var modified = false;
+ var hljs;
+
+ function connect() {
+     try {
+	 socket = new WebSocket(host);
+
+	 socket.onmessage = function(event) {
+	     processEvent(event);
 	 }
+     } catch(exception) {
+	 console.log(exception);
+     }
+ }
 
-	 function processEvent(event) {
-	     let cmd = JSON.parse(event.data);
-	     switch(cmd.event) {
-		 case 'set':
-		     setBuffer(cmd.text);
-		     setMode(cmd.mode);
-		     break;
-		 case 'update':
-		     updateBuffer(cmd.start,
-				  cmd.length,
-				  cmd.text);
-		     break;
-	     }
-	     modified = true;
-	 }
+ function processEvent(event) {
+     let cmd = JSON.parse(event.data);
+     switch(cmd.event) {
+	 case 'set':
+	     setBuffer(cmd.text);
+	     setMode(cmd.mode);
+	     break;
+	 case 'update':
+	     updateBuffer(cmd.start,
+			  cmd.length,
+			  cmd.text);
+	     break;
+     }
+     modified = true;
+ }
 
-	 function setBuffer(text) {
-	     bufferText = text;
-	 }
+ function setBuffer(text) {
+     bufferText = text;
+ }
 
-	 function setMode(mode) {
-	     bufferMode = mode || '';
-	 }
+ function setMode(mode) {
+     bufferMode = mode || '';
+ }
 
-	 function updateBuffer(start, length, insertText) {
-	     // buffer index starts at 1
-	     start -= 1;
+ function updateBuffer(start, length, insertText) {
+     // buffer index starts at 1
+     start -= 1;
 
-	     bufferText =
-		 bufferText.substring(0, start) +
-		 insertText +
-		 bufferText.substring(start + length);
-	 }
+     bufferText =
+	 bufferText.substring(0, start) +
+	 insertText +
+	 bufferText.substring(start + length);
+ }
 
-	 function refresh() {
-	     if (modified) {
-		 modified = false;
-		 let buffer = document.getElementById("buffer");
-		 buffer.innerHTML = escapeHTML(bufferText);
-		 buffer.setAttribute('class', bufferMode);
-		 if (hljs != null)
-		     hljs.highlightBlock(buffer);
-	     }
-	 }
+ function refresh() {
+     if (modified) {
+	 modified = false;
+	 let buffer = document.getElementById("buffer");
+	 buffer.innerHTML = escapeHTML(bufferText);
+	 buffer.setAttribute('class', bufferMode);
+	 if (hljs != null)
+	     hljs.highlightBlock(buffer);
+     }
+ }
 
-	 var entityMap = {
-	     '&': '&amp;',
-	     '<': '&lt;',
-	     '>': '&gt;',
-	     '"': '&quot;',
-	     "'": '&#39;',
-	     '`': '&#x60;',
-	     '=': '&#x3D;',
-	     '/': '&#x2F;'
-	 };
+ var entityMap = {
+     '&': '&amp;',
+     '<': '&lt;',
+     '>': '&gt;',
+     '"': '&quot;',
+     "'": '&#39;',
+     '`': '&#x60;',
+     '=': '&#x3D;',
+     '/': '&#x2F;'
+ };
 
-	 // stolen from mustache.js
-	 function escapeHTML(string) {
-	     return String(string).replace(/[&<>"'`=\/]/g,
-					   function (s) {
-					       return entityMap[s];
-					   });
-	 }
+ // stolen from mustache.js
+ function escapeHTML(string) {
+     return String(string).replace(/[&<>"'`=\/]/g,
+				   function (s) {
+				       return entityMap[s];
+				   });
+ }
 
-         connect();
-	 setInterval(refresh, UPDATE_INTERVAL);
-	</script>
-    </body>
-</html>
+ connect();
+ setInterval(refresh, UPDATE_INTERVAL);
+</script>

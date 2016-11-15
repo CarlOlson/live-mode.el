@@ -1,28 +1,20 @@
-<!doctype html>
-<html>
-    <head>
-	<title>Emacs</title>
-    </head>
-    <body>
-	<div>
-	    <% for buffer in buffer_list %>
-		<% if html_safe?(buffer) %>
-		    <a href='<%= buffer %>'><%= buffer %></a><br>
-		<% end %>
-	    <% end %>
-	</div>
-	<script>
-	 var socket;
-	 var host = 'ws:' + window.location.hostname + ':3001';
+<div class="buffer-list">
+    <% for buffer in buffer_list %>
+	<% if html_safe?(buffer) %>
+	    <a href='<%= buffer %>'><%= buffer %></a><br>
+	<% end %>
+    <% end %>
+</div>
+<script>
+ var socket;
+ var host = 'ws:' + window.location.hostname + ':3001';
 
-         try {
-	     socket = new WebSocket(host);
+ try {
+     socket = new WebSocket(host);
 
-	     socket.onmessage = function(event) {
-	     }
-         } catch(exception) {
-	     console.log(exception);
-         }
-	</script>
-    </body>
-</html>
+     socket.onmessage = function(event) {
+     }
+ } catch(exception) {
+     console.log(exception);
+ }
+</script>

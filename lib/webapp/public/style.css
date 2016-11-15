@@ -9,3 +9,8 @@
     font-family: 'Anonymous Pro Bold', monospace;
     font-size: 18px;
 }
+
+/* Background pattern from subtlepatterns.com */
+body {
+    background-image:url('/stardust.png');
+}

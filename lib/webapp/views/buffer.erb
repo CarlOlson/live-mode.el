@@ -33,7 +33,7 @@
  }
 
  function processEvent(event) {
-     let cmd = JSON.parse(event.data);
+     var cmd = JSON.parse(event.data);
      switch(cmd.event) {
 	 case 'set':
 	     setBuffer(cmd.text);
@@ -49,7 +49,7 @@
  }
 
  function setBuffer(text) {
-     bufferText = text;
+     bufferText = text || '';
  }
 
  function setMode(mode) {
@@ -67,9 +67,16 @@
  }
 
  function refresh() {
-     if (modified) {
-	 modified = false;
-	 let buffer = document.getElementById("buffer");
+     if (!modified)
+	 return;
+
+     modified = false;
+
+     var buffer = document.getElementById("buffer");
+
+     if (bufferText.length == 0) {
+	 buffer.visible = false;
+     } else {
 	 buffer.innerHTML = escapeHTML(bufferText);
 	 buffer.setAttribute('class', bufferMode);
 	 if (hljs != null)

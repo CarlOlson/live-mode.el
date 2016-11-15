@@ -13,6 +13,13 @@ class App < Sinatra::Base
     @channel_modes = {}
   end
 
+  def erb_locals
+    mode = defined?(@buffer) ? @channel_modes[@buffer] : ''
+    { uncommon_mode: common_mode?(mode),
+      mode: mode,
+      buffer_list: @channels.keys }
+  end
+
   configure do
     # NOTE: takes requests on reactor thread
     set :threaded, false
@@ -20,7 +27,7 @@ class App < Sinatra::Base
 
   get '/' do
     # TODO: auto refresh
-    erb :index, locals: { buffer_list: @channels.keys }
+    erb :index, locals: erb_locals
   end
 
   before '/:buffer' do
@@ -28,20 +35,11 @@ class App < Sinatra::Base
   end
 
   get '/:buffer' do
-    mode = @channel_modes[@buffer]
-
-    if common_mode? mode
-      erb :buffer, locals: { uncommon_mode: false }
-    else
-      erb :buffer, locals: { uncommon_mode: true,
-                             mode: mode }
-    end
+    erb :buffer, locals: erb_locals
   end
 
   post '/:buffer' do
-    unless request.ip =~ /^127.0.0.1$/
-      halt 'External IPs not allowed'
-    end
+    halt 'External IPs not allowed' unless request.ip =~ /^127.0.0.1$/
 
     request.body.rewind
     event = JSON.parse(request.body.read)

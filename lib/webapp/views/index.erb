@@ -1,7 +1,15 @@
-<div class="buffer-list">
-    <% for buffer in buffer_list %>
-	<% if html_safe?(buffer) %>
-	    <a href='<%= buffer %>'><%= buffer %></a><br>
-	<% end %>
-    <% end %>
+<div class="row">
+    <div class="col-md-4"></div>
+    <div class="col-md-4">
+	<div class="panel panel-default">
+	    <div class="panel-heading">Buffer List</div>
+	    <div class="list-group">
+		<% for buffer in buffer_list %>
+		    <% if html_safe?(buffer) %>
+			<a class="list-group-item" href='<%= buffer %>'><%= buffer %></a>
+		    <% end %>
+		<% end %>
+	    </div>
+	</div>
+    </div>
 </div>

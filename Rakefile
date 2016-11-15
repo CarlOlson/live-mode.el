@@ -11,6 +11,6 @@ RuboCop::RakeTask.new do |task|
 end
 
 task :start do
-  appname = File.join(Dir.pwd, '/lib/webapp/app.rb')
+  appname = File.join(Dir.pwd, '/lib/webapp/main.rb')
   exec("ruby #{appname}")
 end

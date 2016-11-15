@@ -1,66 +1,46 @@
-require 'thread'
 require 'thin'
-require 'em-websocket'
 require 'sinatra/base'
 require 'json'
-require 'uri'
 
 require './lib/helpers'
 
-EM.run do
+class App < Sinatra::Base
+  helpers Helpers
 
-  # TODO check if threadsafe in EM
-  CHANNELS      = Hash.new
-  CHANNEL_MODES = Hash.new
+  def initialize(app = nil)
+    super(app)
+    @channels      = settings.channels || {}
+    @channel_modes = {}
+  end
 
-  class App < Sinatra::Base
-    helpers Helpers
+  get '/' do
+    erb :index, locals: { buffer_list: @channels.keys }
+  end
 
-    get '/' do
-      erb :index, locals: { buffer_list: CHANNELS.keys }
-    end
+  before '/:buffer' do
+    @buffer = path_to_buffer(params['buffer'])
+  end
 
-    get '/:buffer' do
-      buffer = path_to_buffer(request.path)
-      mode   = CHANNEL_MODES[buffer]
+  get '/:buffer' do
+    mode = @channel_modes[@buffer]
 
-      if Helpers.common_mode? mode
-        erb :buffer, locals: { uncommon_mode: false }
-      else
-        erb :buffer, locals: { uncommon_mode: true,
-                               mode: mode }
-      end
-    end
-
-    post '/:buffer' do
-      request.body.rewind
-      event  = JSON.parse(request.body.read)
-      buffer = path_to_buffer(request.path)
-
-      (CHANNELS[buffer] ||= new_channel).
-        update(event)
-
-      CHANNEL_MODES[buffer] = event['mode']
-
-      status 200
+    if Helpers.common_mode? mode
+      erb :buffer, locals: { uncommon_mode: false }
+    else
+      erb :buffer, locals: { uncommon_mode: true,
+                             mode: mode }
     end
   end
 
-  EM::WebSocket.start(:host => '0.0.0.0', :port => '3001') do |ws|
-    ws.onopen do |handshake|
-      buffer  = Helpers.path_to_buffer(handshake.path)
-      channel =
-        (CHANNELS[buffer] ||= Helpers.new_channel)
+  post '/:buffer' do
+    request.body.rewind
+    event  = JSON.parse(request.body.read)
 
-      sid = channel.subscribe do |cmd|
-        ws.send(cmd.to_json)
-      end
+    (@channels[@buffer] ||= new_channel)
+      .update(event)
 
-      ws.onclose do
-        channel.unsubscribe(sid)
-      end
-    end
+    @channel_modes[@buffer] = event['mode']
+
+    status 200
   end
-
-  App.run! :port => 3000
 end

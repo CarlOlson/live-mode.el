@@ -1,17 +1,13 @@
 
 module Enumerable
   def to_lisp
-    items = self.map do |item|
-      if item.is_a? String
-        item.dump
-      elsif item.is_a? Symbol
-        item.to_s
-      elsif item.is_a? Numeric
-        item
-      elsif item.respond_to? :to_lisp
-        item.to_lisp
+    items = map do |item|
+      case item.class
+      when String  then item.dump
+      when Symbol  then item.to_s
+      when Numeric then item
       else
-        raise StandardError.new 'connot convert to lisp'
+        item.to_lisp
       end
     end
     "(#{items.join(' ')})"

@@ -14,6 +14,7 @@ class App < Sinatra::Base
   end
 
   get '/' do
+    # TODO: auto refresh
     erb :index, locals: { buffer_list: @channels.keys }
   end
 
@@ -24,7 +25,7 @@ class App < Sinatra::Base
   get '/:buffer' do
     mode = @channel_modes[@buffer]
 
-    if Helpers.common_mode? mode
+    if common_mode? mode
       erb :buffer, locals: { uncommon_mode: false }
     else
       erb :buffer, locals: { uncommon_mode: true,

@@ -3,15 +3,14 @@ require 'securerandom'
 require 'eventmachine'
 
 class StateChannel
-
-  def initialize state = nil
+  def initialize(state = nil)
     @state   = state
     @updates = []
     @subs    = {}
     @uid     = 0
   end
 
-  def subscribe &block
+  def subscribe(&block)
     raise ArgumentError, 'No block given' unless block_given?
 
     unique_id.tap do |id|
@@ -20,13 +19,13 @@ class StateChannel
     end
   end
 
-  def unsubscribe id
+  def unsubscribe(id)
     EM.schedule do
       @subs.delete id
     end
   end
 
-  def state= value
+  def state=(value)
     EM.schedule do
       @state   = value
       @updates = []
@@ -36,7 +35,7 @@ class StateChannel
     end
   end
 
-  def update *args
+  def update(*args)
     EM.schedule do
       @updates << args
       @subs.each do |_, block|
@@ -46,16 +45,17 @@ class StateChannel
   end
 
   private
+
   def unique_id
     # good enough
     SecureRandom.hex
   end
 
-  def sync_subscriber id
+  def sync_subscriber(id)
     EM.schedule do
       @subs[id].call @state
       @updates.each do |args|
-        @subs[id].call *args
+        @subs[id].call(*args)
       end
     end
   end

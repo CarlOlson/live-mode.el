@@ -1,1 +1,4 @@
 require: rubocop-rspec
+
+Style/MultilineMethodCallIndentation:
+  Enabled: false

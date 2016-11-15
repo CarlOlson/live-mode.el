@@ -2,13 +2,16 @@ source 'https://rubygems.org'
 
 group :test do
   gem 'rspec', '~>3.5'
-  gem 'guard', '~>2.14'
-  gem 'guard-rspec', '~>4.7'
-  gem 'fuubar', '~>2.2'
   gem 'em-spec', '~>0.2'
 end
 
 group :development do
+  gem 'guard', '~>2.14'
+  gem 'guard-rspec', '~>4.7'
+  gem 'fuubar', '~>2.2'
+
+  gem 'rerun', '~>0.11'
+
   gem 'rubocop', '~>0.45.0', require: 'false'
   gem 'rubocop-rspec', '~>1.8', require: 'false'
 
@@ -21,10 +24,12 @@ group :development do
   gem 'parser', '~>2.3'
 end
 
+gem 'rake', '~>11.3'
+
 gem 'hamster'
 gem 'eventmachine'
 
-# for experimental server
+# for webapp
 gem 'thin'
 gem 'sinatra'
 gem 'em-websocket'

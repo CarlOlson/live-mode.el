@@ -14,3 +14,7 @@ task :start do
   appname = File.join(Dir.pwd, '/lib/webapp/main.rb')
   exec("ruby #{appname}")
 end
+
+task :rerun do
+  exec('bundler exec rerun rake')
+end

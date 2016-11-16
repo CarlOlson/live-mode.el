@@ -1,3 +1,4 @@
+require './lib/buffer'
 require './lib/state_channel'
 
 module Helpers
@@ -41,7 +42,11 @@ module Helpers
   end
 
   def new_channel
-    StateChannel.new(event: 'set', text: '')
+    StateChannel.new(Buffer.new) do |buffer, update|
+      buffer.update(update['start']  || 0,
+                    update['length'] || 0,
+                    update['text']   || '')
+    end
   end
 
   def path_to_buffer(path)

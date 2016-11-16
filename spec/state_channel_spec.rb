@@ -19,8 +19,7 @@ describe StateChannel do
     end
 
     it 'returns a subscription id' do
-      id = channel.subscribe do
-      end
+      id = channel.subscribe {}
       expect(id).to be
     end
   end

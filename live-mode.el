@@ -9,11 +9,15 @@
 (defvar live/process-with-undo-commands
   '(newline indent-for-tab-command))
 
-(defvar live/mode-alist '(("\\.rb$"  . "ruby")
+(defvar live/mode-alist '(("\\.el$"  . "lisp")
+			  ("\\.rb$"  . "ruby")
 			  ("\\.erb$" . "html")
-			  ("\\.pl"   . "prolog")))
+			  ("\\.pl$"  . "prolog")))
 
-(defvar live/previous-undo-list nil)
+(make-local-variable
+ (defvar live/previous-undo-list nil))
+
+(defvar live/event-queue nil)
 
 (defun live/get-highlight-mode ()
   (let* ((filename (buffer-file-name))
@@ -32,30 +36,38 @@
        collect undo
        until (eq rest live/previous-undo-list))))
 
-(defun live/send-json (json)
-  (start-process "*live/post*" nil
-		 "curl"
-		 "-H" "Content-Type: application/json"
-		 "--data"
-		 (json-encode json)
-		 (format live/url-format
-			 live/port
-			 (buffer-name))))
+(defun live/send-queued-events ()
+  (when live/event-queue
+    (let ((queued (nreverse live/event-queue)))
+      (setq live/event-queue nil)
+      ;; TODO: only use synchronously during development
+      (call-process "curl" nil nil nil
+		    "-H" "Content-Type: application/json"
+		    "--connect-timeout" "1"
+		    "--data"
+		    (json-encode queued)
+		    (format live/url-format
+			    live/port
+			    (buffer-name))))))
 
-(defun live/send-set-event (text)
-  (live/send-json `((event . set)
-		    (text  . ,text)
-		    (mode  . ,(live/get-highlight-mode)))))
+(defun live/queue-json (json)
+  (push json live/event-queue)
+  (run-at-time 0 nil 'live/send-queued-events))
 
-(defun live/send-update-event (start length text)
-  (live/send-json `((event  . update)
-		    (start  . ,start)
-		    (length . ,length)
-		    (text   . ,text))))
+(defun live/queue-set-event (text)
+  (live/queue-json `((event . set)
+		     (text  . ,text)
+		     (mode  . ,(live/get-highlight-mode)))))
+
+(defun live/queue-update-event (start length text)
+  (live/queue-json `((event  . update)
+		     (start  . ,start)
+		     (length . ,length)
+		     (text   . ,text))))
 
 (defun live/reverse-undo-list (undos)
   "Applys undo information and returns param lists for
-`live/send-update-event'."
+`live/queue-update-event'."
   (cl-labels ((rec (undo)
 		(when (listp undo)
 		  (let ((head (car undo))
@@ -76,7 +88,7 @@
 		       (rec undo))
 		     undos)))))
 
-(defun live/send-recent-undos ()
+(defun live/queue-recent-undos ()
   (let* ((text      (buffer-string))
 	 (undo-copy (copy-list buffer-undo-list))
 	 (recent    (live/recent-undos))
@@ -84,16 +96,16 @@
 		      (insert text)
 		      (live/reverse-undo-list recent))))
     (dolist (args undo-list)
-      (apply 'live/send-update-event args))))
+      (apply 'live/queue-update-event args))))
 
 (defun live/requires-undo-p ()
   (member this-command live/process-with-undo-commands))
 
 (defun live/after-change-fn (start end prev-length)
   (unless (live/requires-undo-p)
-    (live/send-update-event start
-			    prev-length
-			    (buffer-substring start end))))
+    (live/queue-update-event start
+			     prev-length
+			     (buffer-substring start end))))
 
 (defun live/pre-command-fn ()
   (when (live/requires-undo-p)
@@ -104,10 +116,8 @@
 	     live/previous-undo-list)
     (run-with-timer 0 nil
 		    (lambda ()
-		      (run-with-timer 0 nil
-				      (lambda ()
-					(live/send-recent-undos)
-					(setq live/previous-undo-list nil)))))))
+		      (live/queue-recent-undos)
+		      (setq live/previous-undo-list nil)))))
 
 (defun live/setup ()
   (if live-mode
@@ -115,7 +125,7 @@
 	(add-hook 'after-change-functions 'live/after-change-fn nil t)
 	(add-hook 'pre-command-hook       'live/pre-command-fn nil t)
 	(add-hook 'post-command-hook      'live/post-command-fn nil t)
-	(live/send-set-event (buffer-string)))
+	(live/queue-set-event (buffer-string)))
     (remove-hook 'after-change-functions 'live/after-change-fn t)
     (remove-hook 'pre-command-hook       'live/pre-command-fn t)
     (remove-hook 'post-command-hook      'live/post-command-fn t)))

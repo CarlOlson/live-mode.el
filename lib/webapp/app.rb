@@ -15,7 +15,7 @@ class App < Sinatra::Base
 
   def erb_locals
     mode = defined?(@buffer) ? @channel_modes[@buffer] : ''
-    { uncommon_mode: common_mode?(mode),
+    { common_mode: common_mode?(mode),
       mode: mode,
       buffer_list: @channels.keys }
   end
@@ -35,6 +35,7 @@ class App < Sinatra::Base
   end
 
   get '/:buffer' do
+    redirect to('/') unless @channels.key? @buffer
     erb :buffer, locals: erb_locals
   end
 
@@ -42,12 +43,17 @@ class App < Sinatra::Base
     halt 'External IPs not allowed' unless request.ip =~ /^127.0.0.1$/
 
     request.body.rewind
-    event = JSON.parse(request.body.read)
+    events = JSON.parse(request.body.read)
+    events = events.is_a?(Array) ? events : [events]
 
-    (@channels[@buffer] ||= new_channel)
-      .update(event)
+    events.each do |event|
+      (@channels[@buffer] ||= new_channel)
+        .update(event)
 
-    @channel_modes[@buffer] = event['mode']
+      @channel_modes[@buffer] = event['mode'] if event['mode']
+
+      puts event if event['event'] == 'update'
+    end
 
     status 200
   end

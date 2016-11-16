@@ -3,11 +3,12 @@ require 'securerandom'
 require 'eventmachine'
 
 class StateChannel
-  def initialize(state = nil)
+  def initialize(state = nil, &block)
     @state   = state
     @updates = []
     @subs    = {}
     @uid     = 0
+    @aggregate = block
   end
 
   def subscribe(&block)
@@ -40,6 +41,21 @@ class StateChannel
       @updates << args
       @subs.each do |_, block|
         block.call(*args)
+      end
+
+      aggregate
+    end
+  end
+
+  def aggregate(&block)
+    EM.schedule do
+      @aggregate = block if block_given?
+
+      if @aggregate
+        @updates.each do |update|
+          @state = @aggregate.call(@state, *update)
+        end
+        @updates = []
       end
     end
   end

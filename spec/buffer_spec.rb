@@ -21,4 +21,9 @@ describe Buffer do
     @buffer.text = 'test'
     expect(@buffer.text).to eq ''
   end
+
+  it 'converts to json' do
+    @buffer = @buffer.set('12345')
+    expect(@buffer.to_json).to eq '{"event":"set","text":"12345"}'
+  end
 end

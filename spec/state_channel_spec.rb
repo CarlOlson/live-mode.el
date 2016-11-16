@@ -1,6 +1,7 @@
 
 require 'em-spec/rspec'
 require 'state_channel'
+require 'buffer'
 
 describe StateChannel do
   include EM::SpecHelper
@@ -103,17 +104,42 @@ describe StateChannel do
     end
   end
 
-  it 'sends new subscribes past updates' do
-    em do
-      channel = described_class.new 0
-      channel.update 1
-      channel.update 2
-      updates = []
-      channel.subscribe do |arg|
-        updates << arg
+  context 'without an aggregate function' do
+    it 'sends new subscribes past updates' do
+      em do
+        channel = described_class.new 0
+        channel.update 1
+        channel.update 2
+        updates = []
+        channel.subscribe do |arg|
+          updates << arg
+        end
+        expect(updates).to eq [0, 1, 2]
+        done
       end
-      expect(updates).to eq [0, 1, 2]
-      done
+    end
+  end
+
+  context 'with an aggregate function' do
+    it 'aggregates the updates into the state' do
+      em do
+        channel.aggregate do |state, update|
+          state.update(update['start'],
+                       update['length'],
+                       update['text'])
+        end
+        channel.state = Buffer.new('1234567890!')
+        channel.update('event'  => 'update',
+                       'start'  => 6,
+                       'length' => 5,
+                       'text'   => '!')
+        state = nil
+        channel.subscribe do |arg|
+          state = arg
+        end
+        expect(state.text).to eq '12345!!'
+        done
+      end
     end
   end
 end

@@ -4,7 +4,7 @@
 
 (defvar live/port 3000)
 
-(defvar live/url-format "http://localhost:%s/%s")
+(defvar live/url-format "http://127.0.0.1:%s/%s")
 
 (defvar live/process-with-undo-commands
   '(newline indent-for-tab-command))

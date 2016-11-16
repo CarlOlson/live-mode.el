@@ -43,9 +43,13 @@ module Helpers
 
   def new_channel
     StateChannel.new(Buffer.new) do |buffer, update|
-      buffer.update(update['start']  || 0,
-                    update['length'] || 0,
-                    update['text']   || '')
+      if update['event'] == 'set'
+        Buffer.new update['text']
+      else
+        buffer.update(update['start']  || 0,
+                      update['length'] || 0,
+                      update['text']   || '')
+      end
     end
   end
 

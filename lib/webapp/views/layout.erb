@@ -50,19 +50,18 @@
 		</li>
 	    </ul>
 	    <div class="navbar-form pull-right">
-		<div class="input-group">
-		    <span class="input-group-btn">
-			<button id="font-dec" type="button" class="quantity-left-minus btn btn-default btn-number">
-			    <span class="glyphicon glyphicon-minus"></span>
-			</button>
-		    </span>
-		    <input id="font-size" type="text" class="form-control input-number" value="18">
-		    <div class="input-group-btn">
-			<button id="font-inc" type="button" class="quantity-right-plus btn btn-default btn-number">
-			    <span class="glyphicon glyphicon-plus"></span>
-			</button>
-		    </div>
-		</div>
+		<div class="form-group form-group-options">
+                    <div class="input-group input-group-option quantity-wrapper">
+                        <span id="font-dec" class="input-group-addon input-group-addon-remove quantity-remove btn">
+                            <span class="glyphicon glyphicon-minus"></span>
+                        </span>
+			<input id="font-size" type="text" class="form-control input-number">
+                        <span id="font-inc" class="input-group-addon input-group-addon-remove quantity-add btn">
+                            <span class="glyphicon glyphicon-plus"></span>
+                        </span>
+                    </div>
+
+                </div>
 	    </div>
 	</nav>
 	<%= yield %>

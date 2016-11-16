@@ -27,8 +27,7 @@ EM.run do
   end
 
   # TODO: move to configuration file
-  App.run!(host: '0.0.0.0',
-           port: 3000,
+  App.run!(port: 3000,
            channels: channels)
 
   # NOTE: is last to everride other traps

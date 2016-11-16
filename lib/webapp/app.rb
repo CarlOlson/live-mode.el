@@ -24,6 +24,7 @@ class App < Sinatra::Base
   configure do
     # NOTE: takes requests on reactor thread
     set :threaded, false
+    set :bind, '0.0.0.0'
   end
 
   get '/' do

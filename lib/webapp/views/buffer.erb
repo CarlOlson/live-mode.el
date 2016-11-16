@@ -6,7 +6,7 @@ html_safe?(style) ? style : 'default' %>.min.css">
     <script src='//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.4.0/languages/<%= mode %>.min.js'></script>
 <% end %>
 
-<pre class="borderless"><code id="buffer"></code></pre>
+<pre class="borderless"><code id="buffer" class="<%= mode %>"></code></pre>
 
 <script src="buffer.js" async></script>
 <script src="style.js" async></script>

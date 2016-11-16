@@ -6,7 +6,8 @@
 
 (defvar live/url-format "http://localhost:%s/%s")
 
-(defvar live/indent-commands '(newline indent-for-tab-command))
+(defvar live/process-with-undo-commands
+  '(newline indent-for-tab-command))
 
 (defvar live/mode-alist '(("\\.rb$"  . "ruby")
 			  ("\\.erb$" . "html")
@@ -52,48 +53,72 @@
 		    (length . ,length)
 		    (text   . ,text))))
 
-(defun live/send-undo (undo)
-  (let ((head (car undo))
-	(tail (cdr undo)))
-    (cond
-      ((and (integerp head)
-	    (integerp tail))
-       (live/send-update-event head
-			       0
-			       (buffer-substring head tail)))
-      ((and (stringp head)
-	    (integerp tail))
-       (live/send-update-event tail
-			       (length head)
-			       "")))))
+(defun live/reverse-undo-list (undos)
+  "Applys undo information and returns param lists for
+`live/send-update-event'."
+  (cl-labels ((rec (undo)
+		(when (listp undo)
+		  (let ((head (car undo))
+			(tail (cdr undo)))
+		    (cond
+		      ((and (integerp head)
+			    (integerp tail))
+		       (prog1 (list head 0 (buffer-substring head tail))
+			 (delete-region head tail)))
+		      ((and (stringp head)
+			    (integerp tail))
+		       (prog1 (list (abs tail) (length head) "")
+			 (goto-char (abs tail))
+			 (insert head))))))))
+    (reverse
+     (delete nil
+	     (mapcar (lambda (undo)
+		       (rec undo))
+		     undos)))))
+
+(defun live/send-recent-undos ()
+  (let* ((text      (buffer-string))
+	 (undo-copy (copy-list buffer-undo-list))
+	 (recent    (live/recent-undos))
+	 (undo-list (with-temp-buffer
+		      (insert text)
+		      (live/reverse-undo-list recent))))
+    (dolist (args undo-list)
+      (apply 'live/send-update-event args))))
+
+(defun live/requires-undo-p ()
+  (member this-command live/process-with-undo-commands))
 
 (defun live/after-change-fn (start end prev-length)
-  (unless (member this-command live/indent-commands)
+  (unless (live/requires-undo-p)
     (live/send-update-event start
 			    prev-length
 			    (buffer-substring start end))))
 
-(defun live/pre-indent-fn ()
-  (when (member this-command live/indent-commands)
+(defun live/pre-command-fn ()
+  (when (live/requires-undo-p)
     (setq live/previous-undo-list buffer-undo-list)))
 
-(defun live/post-indent-fn ()
-  (when (and (member this-command live/indent-commands)
+(defun live/post-command-fn ()
+  (when (and (live/requires-undo-p)
 	     live/previous-undo-list)
-    (dolist (undo (reverse (live/recent-undos)))
-      (live/send-undo undo))
-    (setq live/previous-undo-list nil)))
+    (run-with-timer 0 nil
+		    (lambda ()
+		      (run-with-timer 0 nil
+				      (lambda ()
+					(live/send-recent-undos)
+					(setq live/previous-undo-list nil)))))))
 
 (defun live/setup ()
   (if live-mode
       (progn
 	(add-hook 'after-change-functions 'live/after-change-fn nil t)
-	(add-hook 'pre-command-hook       'live/pre-indent-fn nil t)
-	(add-hook 'post-command-hook      'live/post-indent-fn nil t)
+	(add-hook 'pre-command-hook       'live/pre-command-fn nil t)
+	(add-hook 'post-command-hook      'live/post-command-fn nil t)
 	(live/send-set-event (buffer-string)))
     (remove-hook 'after-change-functions 'live/after-change-fn t)
-    (remove-hook 'pre-command-hook       'live/pre-indent-fn t)
-    (remove-hook 'post-command-hook      'live/post-indent-fn t)))
+    (remove-hook 'pre-command-hook       'live/pre-command-fn t)
+    (remove-hook 'post-command-hook      'live/post-command-fn t)))
 
 (define-minor-mode live-mode
     ""

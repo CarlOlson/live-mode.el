@@ -4,59 +4,49 @@ require 'state_server'
 
 TIMEOUT = 0.25
 
-def select_and_gets socket
-  if IO.select([socket], nil, nil, TIMEOUT)
-    socket.gets
-  else
-    fail
+def select_and_gets(socket)
+  unless IO.select([socket], nil, nil, TIMEOUT)
+    raise StandardError, 'IO.select timeout'
   end
+  socket.gets
 end
 
 describe StateServer do
-  before do
-    @port = 5065
-    @host = '127.0.0.1'
-    @server = StateServer.new @host, @port
-
+  let(:port) { 5065 }
+  let(:host) { '127.0.0.1' }
+  let(:server) do
     # NOTE must sleep to allow listener thread to start
-    sleep 0.1
+    described_class.new(host, port).tap { sleep 0.1 }
   end
-  
+  let(:socket) { TCPSocket.new host, port }
+
   after do
-    @server.close if @server
-  end
-  
-  it "should send state on connection" do
-    @server.state = "test"
-    @socket = TCPSocket.new @host, @port
-    expect(select_and_gets(@socket)).to eq %Q{(state "test")\n}
-    @socket.close
+    server.close
+    socket.close
   end
 
-  it "should send updates to connections" do
-    @server.state = "1234567890"
-    @socket = TCPSocket.new @host, @port
-    select_and_gets(@socket) # STATE 1234567890
-    cmd = [6, 5, "!"]
-    @server.update *cmd
-    expect(select_and_gets(@socket)).to start_with [:update, *cmd].to_lisp
-    @socket.close
+  it 'sends state on connection' do
+    server.state = 'test'
+    expect(select_and_gets(socket)).to start_with '(state "test")'
   end
 
-  it "should escape newlines" do
-    @server.state = "line1\nline2"
-    @socket = TCPSocket.new @host, @port
-    expect(select_and_gets(@socket)).to eq %Q{(state "line1\\nline2")\n}
-    @socket.close
+  it 'sends updates to connections' do
+    server.state = '1234567890'
+    select_and_gets(socket) # STATE 1234567890
+    cmd = [6, 5, '!']
+    server.update(*cmd)
+    expect(select_and_gets(socket)).to start_with [:update, *cmd].to_lisp
   end
 
-  it "should apply updates to state" do
-    @server.state = "1234567890"
-    @server.update 6, 5, "!"
-    @server.force
+  it 'escapes newlines' do
+    server.state = "line1\nline2"
+    expect(select_and_gets(socket)).to start_with '(state "line1\nline2")'
+  end
 
-    @socket = TCPSocket.new @host, @port
-    expect(select_and_gets(@socket)).to start_with %Q{(state "12345!")}
-    @socket.close
+  it 'applys updates to state' do
+    server.state = '1234567890'
+    server.update 6, 5, '!'
+    server.force
+    expect(select_and_gets(socket)).to start_with '(state "12345!")'
   end
 end

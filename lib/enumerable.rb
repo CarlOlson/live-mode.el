@@ -2,7 +2,7 @@
 module Enumerable
   def to_lisp
     items = map do |item|
-      case item.class
+      case item
       when String  then item.dump
       when Symbol  then item.to_s
       when Numeric then item

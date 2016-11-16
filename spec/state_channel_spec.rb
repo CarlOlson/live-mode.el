@@ -5,118 +5,116 @@ require 'state_channel'
 describe StateChannel do
   include EM::SpecHelper
 
-  before do
-    @channel = StateChannel.new
-  end
+  let(:channel) { described_class.new }
 
   describe '#initialize' do
-    it 'should accept an initial state' do
-      expect(StateChannel.new 'test state')
+    it 'accepts an initial state' do
+      expect(described_class.new('test state'))
     end
   end
 
   describe '#subscribe' do
-    it 'should require a block' do
-      expect { @channel.subscribe }.to raise_error ArgumentError
+    it 'requires a block' do
+      expect { channel.subscribe }.to raise_error ArgumentError
     end
 
-    it 'should return a subscription id' do
-      id = @channel.subscribe do
+    it 'returns a subscription id' do
+      id = channel.subscribe do
       end
       expect(id).to be
     end
   end
 
   describe '#update' do
-    it 'should send subscribers its arguments' do
-      em {
-        @channel.subscribe do |arg1, arg2|
-          @arg1, @arg2 = arg1, arg2
+    it 'sends subscribers its arguments' do
+      em do
+        args = []
+        channel.subscribe do |arg1, arg2|
+          args = [arg1, arg2]
         end
-        @channel.update(1, 2)
-        expect(@arg1).to eq 1
-        expect(@arg2).to eq 2
+        channel.update(1, 2)
+        expect(args).to eq [1, 2]
         done
-      }
+      end
     end
   end
 
   describe '#unsubscribe' do
-    it 'should remove subscribers' do
-      em {
-        id = @channel.subscribe do |arg1|
-          @arg1 = arg1
+    it 'removes subscribers' do
+      em do
+        arg1 = nil
+        id = channel.subscribe do |arg|
+          arg1 = arg
         end
-        @channel.update 1
-        @channel.unsubscribe id
-        @channel.update 2
-        expect(@arg1).to eq 1
+        channel.update 1
+        channel.unsubscribe id
+        channel.update 2
+        expect(arg1).to eq 1
         done
-      }
+      end
     end
   end
 
   describe '#state=' do
-    it 'should update the state' do
-      em {
-        @channel.state = 'test'
-        @channel.subscribe do |state|
+    it 'updates the state' do
+      em do
+        channel.state = 'test'
+        channel.subscribe do |state|
           expect(state).to eq 'test'
           done
         end
-      }
+      end
     end
 
-    it 'should send state to subscribers' do
-      em {
+    it 'sends state to subscribers' do
+      em do
         args = []
-        @channel.subscribe do |arg|
+        channel.subscribe do |arg|
           args << arg
         end
-        @channel.state = 1
+        channel.state = 1
         expect(args).to eq [nil, 1]
         done
-      }
+      end
     end
 
-    it 'shoud clear updates' do
-      em {
-        @channel.update 1
-        @channel.state = 2
+    it 'clears updates' do
+      em do
+        channel.update 1
+        channel.state = 2
         args = []
-        @channel.subscribe do |arg|
+        channel.subscribe do |arg|
           args << arg
         end
         expect(args).to eq [2]
         done
-      }
+      end
     end
   end
 
-  it 'should send new subscribers the starting state' do
-    em {
-      @channel = StateChannel.new 'state'
-      @state = nil
-      @channel.subscribe do |state|
-        @state = state
+  it 'sends new subscribers the starting state' do
+    em do
+      channel = described_class.new 'state'
+      state = nil
+      channel.subscribe do |arg|
+        state = arg
       end
-      expect(@state).to eq 'state'
+      expect(state).to eq 'state'
       done
-    }
+    end
   end
 
-  it 'should send new subscribes past updates' do
-    em {
-      @channel = StateChannel.new 0
-      @channel.update 1
-      @channel.update 2
-      @updates = []
-      @channel.subscribe do |arg|
-        @updates << arg
+  it 'sends new subscribes past updates' do
+    em do
+      channel = described_class.new 0
+      channel.update 1
+      channel.update 2
+      updates = []
+      channel.subscribe do |arg|
+        updates << arg
       end
-      expect(@updates).to eq [0, 1, 2]
+      expect(updates).to eq [0, 1, 2]
       done
-    }
+    end
   end
-
 end

@@ -18,6 +18,8 @@
  (defvar live/previous-undo-list nil))
 
 (defvar live/event-queue nil)
+(defvar live/undo-event-stack nil)
+(defvar live/change-event-stack nil)
 
 (defun live/get-highlight-mode ()
   (let* ((filename (buffer-file-name))
@@ -36,9 +38,67 @@
        collect undo
        until (eq rest live/previous-undo-list))))
 
+(defun live/merge-lists (a b)
+  ;; TODO: improve by finding equal sublists
+  (cond
+    ((and (null a) (null b))
+     nil)
+    ((equal (car a) (car b))
+     (cons (car a)
+	   (live/merge-lists (cdr a)
+			     (cdr b))))
+    ((>= (length a) (length b))
+     (cons (car a)
+	   (live/merge-lists (cdr a) b)))
+    (t (live/merge-lists b a))))
+
+(defun live/simplify-stacks (updates)
+  ;; TODO: try to simplify
+  (cl-labels ((join (a b)
+		(cl-destructuring-bind (a-start a-len a-text) a
+		  (cl-destructuring-bind (b-start b-len b-text) b
+		    (cond
+		      ((and (= a-len b-len 0)
+			    (= a-start (+ b-start (length b-text))))
+		       (list b-start 0 (concat b-text a-text)))))))
+	      (rec (updates)
+		(cond
+		  ((null (cdr updates)) updates)
+		  ((join (car updates) (cadr updates))
+		   (rec (cons (join (car updates)
+				    (cadr updates))
+			      (cddr updates))))
+		  (t (cons (car updates)
+			   (rec (cdr updates)))))))
+    (let ((len (length updates))
+	  (rtn (rec updates)))
+      (while (/= len (length rtn))
+	(setq len (length rtn)
+	      rtn (rec rtn)))
+      rtn)))
+
+(defun live/execute-queue ()
+  (cond
+    ((or (null live/undo-event-stack)
+	 (null live/change-event-stack)
+	 (equal live/change-event-stack
+		live/undo-event-stack))
+     (dolist (event (or live/undo-event-stack
+			live/change-event-stack))
+       (apply 'live/queue-update-event event)))
+    (t
+     (dolist (event (live/merge-lists
+		     (live/simplify-stacks
+		      live/undo-event-stack)
+		     (live/simplify-stacks
+		      live/change-event-stack)))
+       (apply 'live/queue-update-event event))))
+  (setq live/undo-event-stack   nil
+	live/change-event-stack nil))
+
 (defun live/send-queued-events ()
   (when live/event-queue
-    (let ((queued (nreverse live/event-queue)))
+    (let ((queued live/event-queue))
       (setq live/event-queue nil)
       ;; TODO: only use synchronously during development
       (call-process "curl" nil nil nil
@@ -96,28 +156,29 @@
 		      (insert text)
 		      (live/reverse-undo-list recent))))
     (dolist (args undo-list)
-      (apply 'live/queue-update-event args))))
+      (push args live/undo-event-stack))))
 
 (defun live/requires-undo-p ()
   (member this-command live/process-with-undo-commands))
 
 (defun live/after-change-fn (start end prev-length)
-  (unless (live/requires-undo-p)
-    (live/queue-update-event start
-			     prev-length
-			     (buffer-substring start end))))
+  (push (list start prev-length (buffer-substring start end))
+	live/change-event-stack))
 
 (defun live/pre-command-fn ()
-  (when (live/requires-undo-p)
-    (setq live/previous-undo-list buffer-undo-list)))
+  (setq live/previous-undo-list buffer-undo-list))
 
 (defun live/post-command-fn ()
-  (when (and (live/requires-undo-p)
-	     live/previous-undo-list)
-    (run-with-timer 0 nil
+  (run-with-timer 0 nil
+		  (if (and (live/requires-undo-p)
+			   live/previous-undo-list)
+		      (lambda ()
+			(live/queue-recent-undos)
+			(setq live/previous-undo-list nil)
+			(live/execute-queue))
 		    (lambda ()
-		      (live/queue-recent-undos)
-		      (setq live/previous-undo-list nil)))))
+		      (setq live/previous-undo-list nil)
+		      (live/execute-queue)))))
 
 (defun live/setup ()
   (if live-mode

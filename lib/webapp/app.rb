@@ -17,7 +17,8 @@ class App < Sinatra::Base
     mode = defined?(@buffer) ? @channel_modes[@buffer] : ''
     { common_mode: common_mode?(mode),
       mode: mode,
-      buffer_list: @channels.keys }
+      buffer_list: @channels.keys,
+      style: @style }
   end
 
   configure do
@@ -32,6 +33,9 @@ class App < Sinatra::Base
 
   before '/:buffer' do
     @buffer = path_to_buffer(params['buffer'])
+
+    @style = request.cookies['style'] || 'default'
+    response.set_cookie 'style', value: @style
   end
 
   get '/:buffer' do

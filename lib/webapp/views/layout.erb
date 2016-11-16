@@ -36,6 +36,19 @@
 		    </ul>
 		</li>
 	    </ul>
+	    <ul class="nav navbar-nav">
+		<li class="dropdown">
+		    <a class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+			Styles <span class="caret"></span></a>
+		    <ul class="dropdown-menu">
+			<% for style in ['Android Studio', 'Github', 'Monokai'] %>
+			    <li><a href="#" class="style-button"><%= style %></a></li>
+			<% end %>
+			<li role="separator" class="divider"></li>
+			<li><a href="#" class="style-button">Default</a></li>
+		    </ul>
+		</li>
+	    </ul>
 	    <div class="navbar-form pull-right">
 		<div class="input-group">
 		    <span class="input-group-btn">

@@ -1,5 +1,6 @@
 <link rel="stylesheet"
-      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/monokai.min.css">
+      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/<%=
+html_safe?(style) ? style : 'default' %>.min.css">
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
 <% if !common_mode && html_safe?(mode) %>
     <script src='//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.4.0/languages/<%= mode %>.min.js'></script>
@@ -8,3 +9,4 @@
 <pre class="borderless"><code id="buffer"></code></pre>
 
 <script src="buffer.js" async></script>
+<script src="style.js" async></script>

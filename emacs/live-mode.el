@@ -17,9 +17,12 @@
 (make-local-variable
  (defvar live/previous-undo-list nil))
 
-(defvar live/event-queue nil)
-(defvar live/undo-event-stack nil)
-(defvar live/change-event-stack nil)
+(make-local-variable
+ (defvar live/event-queue nil))
+(make-local-variable
+ (defvar live/undo-event-stack nil))
+(make-local-variable
+ (defvar live/change-event-stack nil))
 
 (defun live/get-highlight-mode ()
   (let* ((filename (buffer-file-name))

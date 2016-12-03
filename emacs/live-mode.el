@@ -24,6 +24,10 @@
 (make-local-variable
  (defvar live/change-event-stack nil))
 
+(make-variable-buffer-local
+ (defvar live/send-hook '(live/send-via-curl)
+   "Functions to send events to.  Added to aid debugging."))
+
 (defun live/get-highlight-mode ()
   (let* ((filename (buffer-file-name))
 	 (pair (cl-find-if (lambda (regex-mode)
@@ -99,19 +103,22 @@
   (setq live/undo-event-stack   nil
 	live/change-event-stack nil))
 
+(defun live/send-via-curl (item)
+  ;; TODO: only use synchronously during development
+  (call-process "curl" nil nil nil
+		    "-H" "Content-Type: application/json"
+		    "--connect-timeout" "1"
+		    "--data"
+		    (json-encode item)
+		    (format live/url-format
+			    live/port
+			    (buffer-name))))
+
 (defun live/send-queued-events ()
   (when live/event-queue
     (let ((queued live/event-queue))
       (setq live/event-queue nil)
-      ;; TODO: only use synchronously during development
-      (call-process "curl" nil nil nil
-		    "-H" "Content-Type: application/json"
-		    "--connect-timeout" "1"
-		    "--data"
-		    (json-encode queued)
-		    (format live/url-format
-			    live/port
-			    (buffer-name))))))
+      (run-hook-with-args live/send-hook queued))))
 
 (defun live/queue-json (json)
   (push json live/event-queue)

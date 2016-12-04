@@ -189,21 +189,22 @@
 		      (setq live/previous-undo-list nil)
 		      (live/execute-queue)))))
 
-(defun live/setup ()
-  (if live-mode
-      (progn
-	(add-hook 'after-change-functions 'live/after-change-fn nil t)
-	(add-hook 'pre-command-hook       'live/pre-command-fn nil t)
-	(add-hook 'post-command-hook      'live/post-command-fn nil t)
-	(live/queue-set-event (buffer-string)))
-    (remove-hook 'after-change-functions 'live/after-change-fn t)
-    (remove-hook 'pre-command-hook       'live/pre-command-fn t)
-    (remove-hook 'post-command-hook      'live/post-command-fn t)))
+(defun live/startup ()
+  (add-hook 'after-change-functions 'live/after-change-fn nil t)
+  (add-hook 'pre-command-hook       'live/pre-command-fn nil t)
+  (add-hook 'post-command-hook      'live/post-command-fn nil t)
+  (live/queue-set-event (buffer-string)))
+
+(defun live/shutdown ()
+  (remove-hook 'after-change-functions 'live/after-change-fn t)
+  (remove-hook 'pre-command-hook       'live/pre-command-fn t)
+  (remove-hook 'post-command-hook      'live/post-command-fn t))
 
 (define-minor-mode live-mode
     ""
   :init-value nil
   :lighter " Live"
-  :keymap nil)
-
-(add-hook 'live-mode-hook 'live/setup)
+  :keymap nil
+  (if live-mode
+      (live/startup)
+    (live/shutdown)))

@@ -24,9 +24,8 @@
 (make-local-variable
  (defvar live/change-event-stack nil))
 
-(make-variable-buffer-local
- (defvar live/send-hook '(live/send-via-curl)
-   "Functions to send events to.  Added to aid debugging."))
+(defvar live/send-hook '(live/send-via-curl)
+  "Functions to send events to.  Added to aid debugging.")
 
 (defun live/get-highlight-mode ()
   (let* ((filename (buffer-file-name))
@@ -118,7 +117,7 @@
   (when live/event-queue
     (let ((queued live/event-queue))
       (setq live/event-queue nil)
-      (run-hook-with-args live/send-hook queued))))
+      (run-hook-with-args 'live/send-hook queued))))
 
 (defun live/queue-json (json)
   (push json live/event-queue)
@@ -126,14 +125,14 @@
 
 (defun live/queue-set-event (text)
   (live/queue-json `((event . set)
-		     (text  . ,text)
+		     (text  . ,(substring-no-properties text))
 		     (mode  . ,(live/get-highlight-mode)))))
 
 (defun live/queue-update-event (start length text)
   (live/queue-json `((event  . update)
 		     (start  . ,start)
 		     (length . ,length)
-		     (text   . ,text))))
+		     (text   . ,(substring-no-properties text)))))
 
 (defun live/reverse-undo-list (undos)
   "Applys undo information and returns param lists for
